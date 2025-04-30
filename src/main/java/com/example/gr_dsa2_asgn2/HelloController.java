@@ -11,10 +11,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.paint.Color;
 import javafx.util.Callback;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
+import java.io.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -59,10 +56,12 @@ public class HelloController {
         setupComboBoxes();
         setupRouteListView();
         setupButtons();
+
+        setupCoordinatePicker();
     }
 
     private void loadCSVData() throws IOException {
-        try (InputStream is = getClass().getResourceAsStream("/ubahn_data.csv");
+        try (InputStream is = getClass().getResourceAsStream("/another_data.csv");
              BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
 
             // Skip header
@@ -75,18 +74,25 @@ public class HelloController {
                     String from = parts[0].trim();
                     String to = parts[1].trim();
                     String lineName = parts[2].trim();
-                    double distance = 1.0; // Default distance
+                    String color = parts[3].trim();
+                    double fromX = Double.parseDouble(parts[4].trim());
+                    double fromY = Double.parseDouble(parts[5].trim());
+                    double toX = Double.parseDouble(parts[6].trim());
+                    double toY = Double.parseDouble(parts[7].trim());
 
                     // Add stations if they don't exist
                     if (graph.getStation(from) == null) {
-                        graph.addStation(from, getRandomLatitude(), getRandomLongitude());
+                        graph.addStation(from, fromX, fromY);
                     }
                     if (graph.getStation(to) == null) {
-                        graph.addStation(to, getRandomLatitude(), getRandomLongitude());
+                        graph.addStation(to, toX, toY);
                     }
+                    double distance = Math.sqrt(Math.pow(toX - fromX, 2) + Math.pow(toY - fromY, 2));
+                    double averageSpeed = 30.0; // km/h for metro
+                    double pixelsToKm = 0.05;
+                    double travelTime = (distance * pixelsToKm) / averageSpeed * 60; // in minutes
 
-                    // Add connection
-                    graph.addConnection(from, to, lineName, distance);
+                    graph.addConnection(from, to, lineName, travelTime);
                 }
             }
         }
@@ -228,10 +234,11 @@ public class HelloController {
                 gc.setStroke(lineColors.getOrDefault(conn.getLineName(), Color.BLACK));
                 gc.setLineWidth(4);
 
-                double x1 = scaleLongitudeToX(current.getLongitude());
-                double y1 = scaleLatitudeToY(current.getLatitude());
-                double x2 = scaleLongitudeToX(next.getLongitude());
-                double y2 = scaleLatitudeToY(next.getLatitude());
+                // Use direct pixel coordinates
+                double x1 = current.getXCoord();
+                double y1 = current.getYCoord();
+                double x2 = next.getXCoord();
+                double y2 = next.getYCoord();
 
                 gc.strokeLine(x1, y1, x2, y2);
             }
@@ -251,8 +258,9 @@ public class HelloController {
     }
 
     private void drawStationMarker(Station station, GraphicsContext gc) {
-        double x = scaleLongitudeToX(station.getLongitude());
-        double y = scaleLatitudeToY(station.getLatitude());
+        // Use direct pixel coordinates
+        double x = station.getXCoord();
+        double y = station.getYCoord();
 
         // Draw station circle
         gc.fillOval(x - 5, y - 5, 10, 10);
@@ -262,7 +270,6 @@ public class HelloController {
         gc.setLineWidth(2);
         gc.strokeOval(x - 6, y - 6, 12, 12);
     }
-
     private void drawSpecialStation(Station station, Color color, String label) {
         GraphicsContext gc = routeCanvas.getGraphicsContext2D();
         double x = scaleLongitudeToX(station.getLongitude());
@@ -290,4 +297,62 @@ public class HelloController {
     private double scaleLatitudeToY(double latitude) {
         return routeCanvas.getHeight() - ((latitude - MIN_LATITUDE) / (MAX_LATITUDE - MIN_LATITUDE)) * routeCanvas.getHeight();
     }
+    private Map<String, double[]> stationCoordinates = new LinkedHashMap<>(); // Stores clicked coordinates
+    private boolean isCoordinatePickerMode = false; // Toggle mode
+    private void setupCoordinatePicker() {
+        routeCanvas.setOnMouseClicked(e -> {
+            if (!isCoordinatePickerMode) return;
+
+            double x = e.getX();
+            double y = e.getY();
+
+            // Draw a marker immediately
+            GraphicsContext gc = routeCanvas.getGraphicsContext2D();
+            gc.setFill(Color.RED);
+            gc.fillOval(x - 5, y - 5, 10, 10);
+
+            // Prompt user for station name
+            TextInputDialog dialog = new TextInputDialog();
+            dialog.setTitle("Station Name");
+            dialog.setHeaderText("Enter station name for coordinates (" + x + ", " + y + ")");
+            dialog.setContentText("Name:");
+
+            Optional<String> result = dialog.showAndWait();
+            result.ifPresent(name -> {
+                System.out.printf("Station '%s' at (%.1f, %.1f)%n", name, x, y);
+                stationCoordinates.put(name, new double[]{x, y});  // <-- Moved here
+            });
+        });
+    }
+
+    // Add a method to toggle picker mode (call this from a button)
+    @FXML
+    private void toggleCoordinatePicker() {
+        isCoordinatePickerMode = !isCoordinatePickerMode;
+        if (isCoordinatePickerMode) {
+            resultArea.setText("Click on stations to record their coordinates...");
+        } else {
+            resultArea.setText("Coordinate picker mode deactivated.");
+            //saveCoordinatesToFile(); // Optional: save when done
+        }
+    }
+
+    @FXML
+    private void exportToCSV() {
+        File file = new File("vienna_ubahn_coordinates.csv");
+
+        try (PrintWriter writer = new PrintWriter(file)) {
+            writer.println("Station,X,Y");  // CSV Header
+
+            stationCoordinates.forEach((name, coords) -> {
+                writer.printf("%s,%.1f,%.1f%n", name, coords[0], coords[1]);
+            });
+
+            resultArea.setText("Exported " + stationCoordinates.size() + " stations to " + file.getAbsolutePath());
+        } catch (IOException e) {
+            resultArea.setText("Export failed: " + e.getMessage());
+        }
+    }
+
+
 }

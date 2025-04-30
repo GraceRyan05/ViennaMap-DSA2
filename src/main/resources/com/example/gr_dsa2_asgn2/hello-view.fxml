@@ -24,6 +24,8 @@
          <font>
             <Font name="System Bold" size="12.0" />
          </font></Button>
+      <Button text="Toggle Coordinate Picker" onAction="#toggleCoordinatePicker" />
+      <Button text="Export" onAction="#exportToCSV"/>
       <TextArea fx:id="resultArea" layoutX="210.0" layoutY="446.0" prefHeight="156.0" prefWidth="627.0" />
       <VBox layoutX="16.0" layoutY="157.0" prefHeight="326.0" prefWidth="178.0">
          <children>

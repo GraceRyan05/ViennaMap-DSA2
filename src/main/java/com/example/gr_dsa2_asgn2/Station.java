@@ -11,16 +11,22 @@ public class Station {
     private double distance; // For Dijkstra's algorithm
     private Station previous; // For path reconstruction
 
-    public Station(String name, double latitude, double longitude) {
+    private double xCoord; //pixel x coordinate on map
+    private double yCoord; //pixel y coordinate on map
+
+    public Station(String name, double xCoord, double yCoord) {
         this.name = name;
-        this.latitude = latitude;
-        this.longitude = longitude;
+        this.xCoord = xCoord;
+        this.yCoord = yCoord;
         this.connections = new ArrayList<>();
         this.distance = Double.MAX_VALUE; // Initialize to infinity
         this.previous = null;
     }
 
     // Getters and setters
+
+    public double getXCoord(){ return xCoord; }
+    public double getYCoord() {return yCoord; }
     public String getName() { return name; }
     public double getLatitude() { return latitude; }
     public double getLongitude() { return longitude; }
