@@ -27,6 +27,7 @@ public class HelloController {
     @FXML private ImageView mapView;
     @FXML private Canvas routeCanvas;
     @FXML private TextArea resultArea;
+    @FXML private Button findAllRoutesButton;
 
     private StationGraph graph;
     private Map<String, Color> lineColors = Map.of(
@@ -57,7 +58,6 @@ public class HelloController {
         setupRouteListView();
         setupButtons();
 
-        setupCoordinatePicker();
     }
 
     private void loadCSVData() throws IOException {
@@ -198,7 +198,7 @@ public class HelloController {
                 currentLine = connection.getLineName();
                 totalTime += connection.getDistance();
 
-                String connectionInfo = String.format("%s → %s (Line %s, %.1f min)",
+                String connectionInfo = String.format("%s -> %s (Line %s, %.1f min)",
                         current.getName(), next.getName(), connection.getLineName(), connection.getDistance());
 
                 waypointsList.getItems().add(connectionInfo);
@@ -298,61 +298,108 @@ public class HelloController {
         return routeCanvas.getHeight() - ((latitude - MIN_LATITUDE) / (MAX_LATITUDE - MIN_LATITUDE)) * routeCanvas.getHeight();
     }
     private Map<String, double[]> stationCoordinates = new LinkedHashMap<>(); // Stores clicked coordinates
-    private boolean isCoordinatePickerMode = false; // Toggle mode
-    private void setupCoordinatePicker() {
-        routeCanvas.setOnMouseClicked(e -> {
-            if (!isCoordinatePickerMode) return;
 
-            double x = e.getX();
-            double y = e.getY();
-
-            // Draw a marker immediately
-            GraphicsContext gc = routeCanvas.getGraphicsContext2D();
-            gc.setFill(Color.RED);
-            gc.fillOval(x - 5, y - 5, 10, 10);
-
-            // Prompt user for station name
-            TextInputDialog dialog = new TextInputDialog();
-            dialog.setTitle("Station Name");
-            dialog.setHeaderText("Enter station name for coordinates (" + x + ", " + y + ")");
-            dialog.setContentText("Name:");
-
-            Optional<String> result = dialog.showAndWait();
-            result.ifPresent(name -> {
-                System.out.printf("Station '%s' at (%.1f, %.1f)%n", name, x, y);
-                stationCoordinates.put(name, new double[]{x, y});  // <-- Moved here
-            });
-        });
-    }
-
-    // Add a method to toggle picker mode (call this from a button)
     @FXML
-    private void toggleCoordinatePicker() {
-        isCoordinatePickerMode = !isCoordinatePickerMode;
-        if (isCoordinatePickerMode) {
-            resultArea.setText("Click on stations to record their coordinates...");
+    private void showAllRoutes() {
+        String start = startComboBox.getValue();
+        String end = endComboBox.getValue();
+        List<String> waypoints = new ArrayList<>(waypointsList.getItems());
+
+        if (start == null || end == null) {
+            resultArea.setText("Please select both start and end stations");
+            return;
+        }
+
+        DFS dfs = new DFS(graph);
+        List<List<Station>> allRoutes;
+
+        if (waypoints.isEmpty()) {
+            allRoutes = dfs.findAllRoutes(start, end);
         } else {
-            resultArea.setText("Coordinate picker mode deactivated.");
-            //saveCoordinatesToFile(); // Optional: save when done
+            allRoutes = dfs.findAllRoutesWithWaypoints(start, end, waypoints);
         }
+
+        displayMultipleRoutes(allRoutes);
     }
 
-    @FXML
-    private void exportToCSV() {
-        File file = new File("vienna_ubahn_coordinates.csv");
+    private void displayMultipleRoutes(List<List<Station>> routes) {
+        resultArea.clear();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Found ").append(routes.size()).append(" possible routes:\n\n");
+        displayRouteInWaypointsList(routes.get(0));
 
-        try (PrintWriter writer = new PrintWriter(file)) {
-            writer.println("Station,X,Y");  // CSV Header
+        for (int i = 0; i < routes.size(); i++) {
+            sb.append("- Route ").append(i + 1).append(" -\n");
+            List<Station> route = routes.get(i);
+            String currentLine = null;
+            double totalTime = 0;
+            int transferCount = 0;
 
-            stationCoordinates.forEach((name, coords) -> {
-                writer.printf("%s,%.1f,%.1f%n", name, coords[0], coords[1]);
-            });
+            for (int j = 0; j < route.size() - 1; j++) {
+                Station current = route.get(j);
+                Station next = route.get(j + 1);
+                Connection conn = findConnection(current, next);
 
-            resultArea.setText("Exported " + stationCoordinates.size() + " stations to " + file.getAbsolutePath());
-        } catch (IOException e) {
-            resultArea.setText("Export failed: " + e.getMessage());
+                if (conn != null) {
+                    // Check for line change
+                    if (currentLine != null && !currentLine.equals(conn.getLineName())) {
+                        sb.append(" TRANSFER at ").append(current.getName())
+                                .append(" to Line ").append(conn.getLineName()).append("\n");
+                        transferCount++;
+                    }
+                    currentLine = conn.getLineName();
+                    totalTime += conn.getDistance();
+
+                    sb.append("  ").append(current.getName()).append(" -> ")
+                            .append(next.getName()).append(" (Line ")
+                            .append(conn.getLineName()).append(", ")
+                            .append(String.format("%.1f min", conn.getDistance())).append(")\n");
+                }
+            }
+
+            sb.append("\nTotal time: ").append(String.format("%.1f", totalTime))
+                    .append(" minutes | Transfers: ").append(transferCount).append("\n\n");
+        }
+
+        resultArea.setText(sb.toString());
+
+        // Show the first route on the map by default
+        if (!routes.isEmpty()) {
+            drawRouteOnMap(routes.get(0));
         }
     }
+    private void displayRouteInWaypointsList(List<Station> route) {
+        ObservableList<String> items = waypointsList.getItems();
+        items.clear();
 
+        String currentLine = null;
+        double totalTime = 0;
+        int transferCount = 0;
+
+        for (int i = 0; i < route.size() - 1; i++) {
+            Station current = route.get(i);
+            Station next = route.get(i + 1);
+            Connection connection = findConnection(current, next);
+
+            if (connection != null) {
+                // Check for line change
+                if (currentLine != null && !currentLine.equals(connection.getLineName())) {
+                    String transferMsg = "TRANSFER at " + current.getName() + " to Line " + connection.getLineName();
+                    items.add(transferMsg);
+                    transferCount++;
+                }
+
+                currentLine = connection.getLineName();
+                totalTime += connection.getDistance();
+
+                String connectionInfo = String.format("%s -> %s (Line %s, %.1f min)",
+                        current.getName(), next.getName(),
+                        connection.getLineName(), connection.getDistance());
+
+                items.add(connectionInfo);
+            }
+        }
+
+    }
 
 }

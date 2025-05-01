@@ -16,16 +16,18 @@
    <children>
       <ImageView fx:id="mapView" fitHeight="411.0" fitWidth="627.0" layoutX="210.0" layoutY="35.0" pickOnBounds="true" preserveRatio="true" />
       <Canvas fx:id="routeCanvas" height="393.0" layoutX="210.0" layoutY="35.0" width="627.0" />
-      <Button fx:id="findRouteButton" layoutX="68.0" layoutY="511.0" mnemonicParsing="false" style="-fx-background-color: #014421;" text="Find Route" textFill="WHITE">
+      <Button fx:id="findRouteButton" layoutX="16.0" layoutY="511.0" mnemonicParsing="false" style="-fx-background-color: #014421;" text="Find Route" textFill="WHITE">
          <font>
             <Font name="System Bold" size="12.0" />
          </font></Button>
-      <Button fx:id="clearButton" layoutX="68.0" layoutY="552.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="74.0" style="-fx-background-color: #014421;" text="Clear" textFill="WHITE">
+      <Button fx:id="clearButton" layoutX="17.0" layoutY="548.0" mnemonicParsing="false" prefHeight="26.0" prefWidth="74.0" style="-fx-background-color: #014421;" text="Clear" textFill="WHITE">
          <font>
             <Font name="System Bold" size="12.0" />
          </font></Button>
-      <Button text="Toggle Coordinate Picker" onAction="#toggleCoordinatePicker" />
-      <Button text="Export" onAction="#exportToCSV"/>
+      <Button fx:id="findAllRoutesButton" layoutX="105.0" layoutY="511.0" mnemonicParsing="false" onAction="#showAllRoutes" prefHeight="26.0" prefWidth="74.0" style="-fx-background-color: #014421;" text="Find all routes" textFill="WHITE">
+         <font>
+            <Font name="System Bold" size="12.0" />
+         </font></Button>
       <TextArea fx:id="resultArea" layoutX="210.0" layoutY="446.0" prefHeight="156.0" prefWidth="627.0" />
       <VBox layoutX="16.0" layoutY="157.0" prefHeight="326.0" prefWidth="178.0">
          <children>
