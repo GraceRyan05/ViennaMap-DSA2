@@ -28,6 +28,7 @@ public class HelloController {
     @FXML private Canvas routeCanvas;
     @FXML private TextArea resultArea;
     @FXML private Button findAllRoutesButton;
+    @FXML private Button findRouteBFSButton;
 
     private StationGraph graph;
     private Map<String, Color> lineColors = Map.of(
@@ -206,8 +207,9 @@ public class HelloController {
             }
         }
 
-        routeSummary.append("\nTotal journey time: ").append(String.format("%.1f", totalTime)).append(" minutes\n");
-        routeSummary.append("Number of transfers: ").append(transferCount);
+        routeSummary.append("\nTotal time: ").append(String.format("%.1f", totalTime))
+                .append(" minutes ; Transfers: ").append(transferCount).append("\n\n");
+
 
         resultArea.setText(routeSummary.toString());
     }
@@ -358,7 +360,7 @@ public class HelloController {
             }
 
             sb.append("\nTotal time: ").append(String.format("%.1f", totalTime))
-                    .append(" minutes | Transfers: ").append(transferCount).append("\n\n");
+                    .append(" minutes ; Transfers: ").append(transferCount).append("\n\n");
         }
 
         resultArea.setText(sb.toString());
@@ -401,5 +403,71 @@ public class HelloController {
         }
 
     }
+    @FXML
+    private void findRouteWithBFS() {
+        String start = startComboBox.getValue();
+        String end = endComboBox.getValue();
+
+        if (start == null || end == null) {
+            resultArea.setText("Please select both start and end stations");
+            return;
+        }
+
+        BFS bfs = new BFS(graph);
+        List<Station> route = bfs.findRoute(start, end);
+
+        if (route.isEmpty()) {
+            resultArea.setText("No route found between " + start + " and " + end);
+            return;
+        }
+
+        displayBFSPath(route);
+        drawRouteOnMap(route);
+    }
+
+    private void displayBFSPath(List<Station> route) {
+        waypointsList.getItems().clear();
+        resultArea.clear();
+
+        StringBuilder routeInfo = new StringBuilder();
+        routeInfo.append("Route with fewest stops (").append(route.size() - 1)
+                .append(" stops):\n\n");
+
+        String currentLine = null;
+        int transferCount = 0;
+        double totalTime = 0;
+
+        for (int i = 0; i < route.size() - 1; i++) {
+            Station current = route.get(i);
+            Station next = route.get(i + 1);
+            Connection connection = findConnection(current, next);
+
+            if (connection != null) {
+                // Check for line change
+                if (currentLine != null && !currentLine.equals(connection.getLineName())) {
+                    String transferMsg = "TRANSFER at " + current.getName() +
+                            " to Line " + connection.getLineName();
+                    waypointsList.getItems().add(transferMsg);
+                    routeInfo.append(transferMsg).append("\n");
+                    transferCount++;
+                }
+
+                currentLine = connection.getLineName();
+                totalTime += connection.getDistance();
+
+                String connectionInfo = String.format("%s -> %s (Line %s, %.1f min)",
+                        current.getName(), next.getName(), connection.getLineName(), connection.getDistance());
+
+                waypointsList.getItems().add(connectionInfo);
+                routeInfo.append(connectionInfo).append("\n");
+            }
+        }
+
+        routeInfo.append("\nTotal time: ").append(String.format("%.1f", totalTime))
+                .append(" minutes ; Transfers: ").append(transferCount).append("\n\n");
+
+        resultArea.setText(routeInfo.toString());
+    }
+
 
 }

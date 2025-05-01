@@ -1,6 +1,7 @@
 module com.example.gr_dsa2_asgn2 {
     requires javafx.controls;
     requires javafx.fxml;
+    requires org.testng;
 
 
     opens com.example.gr_dsa2_asgn2 to javafx.fxml;
