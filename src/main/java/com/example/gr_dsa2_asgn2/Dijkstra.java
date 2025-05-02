@@ -2,6 +2,11 @@ package com.example.gr_dsa2_asgn2;
 
 import java.util.*;
 
+//Dijkstra returns the single fastest path - Moderate - Fastest journey
+
+//uses a priority queue
+//adds line change penalties
+//tracks travel time
 public class Dijkstra {
     private StationGraph graph;
 

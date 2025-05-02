@@ -2,6 +2,11 @@ package com.example.gr_dsa2_asgn2;
 
 import java.util.*;
 
+//DFS returns all possible paths - slow - Explores alternaive options
+
+//follows each path as far as possible before backtracking
+//will find all possible routes
+
 public class DFS {
     private StationGraph graph;
 

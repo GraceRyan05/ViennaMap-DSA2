@@ -7,6 +7,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.*;
 
+//Manages the entire network for the lines
+
+
+
 public class StationGraph {
     private Map<String, Station> stations;
     private Map<String, String> nameMapping; // For case-insensitive lookup

@@ -2,6 +2,13 @@ package com.example.gr_dsa2_asgn2;
 
 import java.util.*;
 
+//BFS returns the shortes path - Fast - With fewest transfers
+
+
+
+//Checks all the neighbouring lines at current depth before moving deeper
+//will find the path with fewest stops
+
 public class BFS {
     private StationGraph graph;
 

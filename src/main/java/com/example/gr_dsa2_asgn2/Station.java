@@ -3,6 +3,12 @@ package com.example.gr_dsa2_asgn2;
 import java.util.ArrayList;
 import java.util.List;
 
+//Represents a physical station
+
+//Fields:
+//Connections - List of routes to other stations
+//distance/previous - used by algorithms
+//xcord/ycord - screen coords for visualising
 public class Station {
     private String name;
     private double latitude;

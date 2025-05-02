@@ -1,5 +1,11 @@
 package com.example.gr_dsa2_asgn2;
 
+//Represents a direct route between 2 stations
+
+//Fields:
+//linename - subway line identifier
+//distance - travel time in minutes
+
 public class Connection {
     private Station toStation;
     private String lineName;
